@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+README.Rmd
+data/gss2016.csv
+solution.Rmd
+solution_files/figure-gfm/educ-density-1.png
+solution_files/figure-gfm/stats-boots-1.png
+solution_files/figure-gfm/stats-boots-2.png
+solution.md

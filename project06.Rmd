@@ -1,0 +1,193 @@
+---
+title: "Project 6"
+author: "First and Last Name"
+output: github_document
+---
+
+
+## Task 3: Set-up
+
+In this activity you will be bootstrapping, which means we'll be generating random samples.
+First, you will need the `{tidyverse}` and `{infer}` packages.
+
+```{r load-packages, message=FALSE}
+knitr::opts_chunk$set(error = TRUE, fig.width = 6, fig.asp = 0.618)
+# LOAD ANY PACKAGES YOU NEED
+```
+
+
+### Data
+
+As previously mentioned, you will work with the 2016 GSS data.
+The GSS gathers data on contemporary American society in order to monitor and explain trends and constants in attitudes, behaviors, and attributes. In this lab we analyze data from the 2016 GSS, using it to estimate values of population parameters of interest about US adults.
+The public release of this data contains 935 variables and 2,867 observations.
+This is not a massive data set, but it is a fairly large that we need to consider how we handle it in our workflow.
+
+The size of the data file we're working with it 34.3 MB (the professor evaluations data was 45KB) which means the GSS data is a little over 750 times the size of the evaluations data.
+That's a big difference! 
+Remember that GitHub will produce a warning when you push files larger than 50 MB, and it will not allow files larger than 100 MB (see [GitHub Help - Working with large files](https://help.github.com/articles/working-with-large-files/)).
+While this file is smaller than both of these limits, it's still large enough to not push to GitHub.
+Therefore, I have uploaded this dataset on Blackboard where you created this repository.
+
+Again, this is where the `.gitignore` file comes into play.
+If you open the `.gitignore` file in your project repo, you'll see that the data file, `gss2016.csv`, is already listed there.
+
+- You will need to download the `gss2016.csv` from Blackboard.  
+- Create a `/data` folder in your RStudio Cloud project and upload the `gss2016.csv` file.
+- Note that even though you made a change in your files by adding the data, `gss2016.csv` does not appear in your Git pane. This is because it's being ignored by git.
+
+Below is a `load-data` R chunk that reads in this file.
+
+```{r load-data, message=FALSE}
+gss <- read_csv(here::here("data","gss2016.csv"),
+                na = c("", "Dont know", "Don't know",
+                       "No answer", "Not applicable", "NA"),
+                guess_max = 2867) %>%
+  select(harass5, educ, born, polviews, advfront)
+```
+
+Notice that this chunk does three things:
+
+1. `na = c(...)`: I specified some additional values that `read_csv()` should treat as missing values.
+2. `guess_max`: In the documentation for `read_csv()` you see that the function uses the first 1,000 observations from a data frame to determine the classes of each variable. However, in this data frame, we have numeric data within the first 1,000 rows, but then something like `"8 or more"` in later rows. Therefore, without specifically telling R to scan all rows to determine the variable class, we would end up with some warnings when loading the data. Feel free to experiment with this by removing the `guess_max` argument.
+3. `select`: In this Activity, I know which variables you will be using from the data, so you can just select those and not carry along the entire dataset. This is extremely helpful when working with large data sets. Now, you might be wondering how you would know ahead of time which variables you will be working with. Valid and you probably won't know.  However, once you make up your mind, you can always go back and add a `select()` so that from that point on you can benefit from faster computation in your analysis.
+
+## Task 4: Education
+
+Our variable of interest for this lab is going to be `educ` which is the number of years of education the respondent has completed.
+Plot a histogram of `educ` with an overlaying density.
+Comment briefly on the shape, center, and spread.
+
+**delete this line and add your code**
+
+**delete this line and add your comments**
+
+
+Suppose we're interested in making inference about the typical number of years of education that a person has completed and this is our representative sample.
+Is the mean a good statistic to use here to describe the typical value of salary?
+Why or why not?
+
+**delete this line and add your comments**
+
+
+Recall from your introductory statistics course that a one-sample *t*-test requires that the sample mean is approximately Normally distributed.
+Does this assumption seem reasonable for the mean number of years of education?
+Why or why not?
+
+**delete this line and add your comments**
+
+
+Since our sample size is so large, the distribution of the *sample mean* is approximately Normal (the CLT!).
+The `t.test(df$var)` function can be used to do a one-sample *t*-test and to find a 95% confidence interval for the mean number of years of education that US adults complete.
+Construct a 95% confidence interval for the mean number of years of education that US adults complete.
+
+**delete this line and add your code**
+
+**delete this line and add your comments**
+
+
+### Bootstrapping
+
+Before we get too far, there are a number of missing values within `gss$educ`.
+In order to make sure that we are bootstrapping observations for which we have data, we will first filter for non-`NA` values and create a new data frame.
+
+```{r gss-educ}
+gss_educ <- gss %>%
+  filter(!is.na(educ)) %>% 
+  select(educ)
+```
+
+From your readings, you saw how to use computer simulations of resampling (using `infer::rep_sample_n()`) to construct 1,000 bootstrap samples.
+For example, we could do:
+
+```
+boot_educ <- gss_educ %>%
+  rep_sample_n(size = nrow(gss_educ),
+               replace = TRUE,
+               reps = 1000)
+```
+
+Using these 1,000 bootstrap samples, we can then calculate the `mean_educ` for each replication:
+
+```
+boot_educ_means <- boot_educ %>% 
+  group_by(replicate) %>% 
+  summarise(mean_educ = mean(educ))
+```
+
+Using `replicate()`, `sample()`, and the appropriate `map_*()` functions, perform 1,000 bootstrap samples and calculate the mean for each sample.
+The last thing you want is those samples to change every time you knit your document because your interpretations might be slightly different.
+So, you will need to set a seed.
+
+**delete this line set your seed to your street number and add your code**
+
+
+Now, use the `quantile()` function with appropriate `probs` to get construct a 95% bootstrap confidence interval for the mean number of years of education that US adults complete.
+Compare this interval to your t-interval above.
+
+**delete this line and add your code**
+
+**delete this line and add your comments**
+
+
+## Task 5: Other statistics
+
+Since the distribution of `educ` is so skewed, there may be other statistics that are better at describing the typical number of years of education completed by US adults.
+Write your own function for calculating the statistics below (you may have to Google what they mean!  Feel free to use relevant code from previous Activities).
+
+Perform the bootstrap procedure and produce histogram and density graphs of the distributions of:
+
+- Midhinge
+- 5% Trimmed Mean (you can write one function that takes two arguments 1] the data vector and 2] the percent to trim to be efficient with these different trimmed means)
+- 10% Trimmed Mean
+- 25% Trimmed Mean
+- Median
+
+Compute 95% bootstrap confidence intervals for the statistics listed above.
+For each, compare to your interval to the bootstrap interval for the *mean* that you computed first. 
+
+Which of these statistics do you think is the best statistic to describe the number of years of education?
+Why?
+There is no single write answer to this question.
+Think about what each statistic is measuring, and decide whether that makes sense for this data.
+
+### Midhinge
+
+**delete this line and add your code**
+
+**delete this line and add your comments**
+
+
+### Trimmed Mean
+
+#### 5% Trimmed Mean
+
+**delete this line and add your code**
+
+**delete this line and add your comments**
+
+
+#### 10% Trimmed Mean
+
+**delete this line and add your code**
+
+**delete this line and add your comments**
+
+
+#### 25% Trimmed Mean
+
+**delete this line and add your code**
+
+**delete this line and add your comments**
+
+
+### Median
+
+**delete this line and add your code**
+
+**delete this line and add your comments**
+
+
+## Attribution
+
+This activity is based on labs by [Mine Çetinkaya-Rundel](https://www2.stat.duke.edu/courses/Spring18/Sta199/) and [Kelly Bodwin](https://www.kelly-bodwin.com/about/).
