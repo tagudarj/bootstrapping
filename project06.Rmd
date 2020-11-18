@@ -155,7 +155,7 @@ boot_educ_means %>%
   geom_density(fill = "red", alpha = 0.3) +
   theme_light() +
   labs(
-    title = "Density of Median Number of Years of Education",
+    title = "Density of Mean Number of Years of Education",
     subtitle = "Respondent has Completed",
     x = "Mean Years",
     y = "Density"
