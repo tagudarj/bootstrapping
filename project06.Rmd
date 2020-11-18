@@ -1,6 +1,6 @@
 ---
 title: "Project 6"
-author: "First and Last Name"
+author: "Jessica Tagudar"
 output: github_document
 ---
 
@@ -13,6 +13,8 @@ First, you will need the `{tidyverse}` and `{infer}` packages.
 ```{r load-packages, message=FALSE}
 knitr::opts_chunk$set(error = TRUE, fig.width = 6, fig.asp = 0.618)
 # LOAD ANY PACKAGES YOU NEED
+library(tidyverse)
+library(infer)
 ```
 
 
@@ -58,32 +60,47 @@ Our variable of interest for this lab is going to be `educ` which is the number 
 Plot a histogram of `educ` with an overlaying density.
 Comment briefly on the shape, center, and spread.
 
-**delete this line and add your code**
+```{r educ_hist}
+gss %>%
+  ggplot(mapping = aes(x = educ)) +
+  geom_histogram(aes(y = stat(density)), color = "white", binwidth = 1) +
+  geom_density(fill = "red", alpha = 0.3) +
+  theme_light() +
+  labs(
+    title = "Density of Number of Years of Education",
+    subtitle = "Respondent has Completed",
+    x = "Years",
+    y = "Density"
+  )
+```
 
-**delete this line and add your comments**
+**The shape of the density curve is not symmetrical. The center leans towards the left side of the curve. The data is rightly skewed. The spread is more distributed on the right end of the curve.**
 
+**For the histogram creation, I used a borderline of white to make the data stand out. I also used theme_light() for this same reason. I used a density fill color of red to contrast against the gray data. An alpha of 0.3 was used to see both the density curve and histogram data. Respective labels were also added. The same format was used for future histograms.**
 
 Suppose we're interested in making inference about the typical number of years of education that a person has completed and this is our representative sample.
-Is the mean a good statistic to use here to describe the typical value of salary?
+Is the mean a good statistic to use here to describe the typical value of education?
 Why or why not?
 
-**delete this line and add your comments**
+**I think that the mean would be a good statistic to use here to describe the typical value of education. As seen in the plot above, the number of years of education is fairly skewed and non-normal. I think that the mean would be a statistic to level out, or normalize this data. The mean is also known as the average, which I think would be a better representation of the data.**
 
 
 Recall from your introductory statistics course that a one-sample *t*-test requires that the sample mean is approximately Normally distributed.
 Does this assumption seem reasonable for the mean number of years of education?
 Why or why not?
 
-**delete this line and add your comments**
+**This assumption does not seem reasonable for the mean number of years of education. According to the density plot above, the data is not bell-shaped and/or symmetrical. The data would be considered normal if it was bell-shaped and symmetrical.**
 
 
 Since our sample size is so large, the distribution of the *sample mean* is approximately Normal (the CLT!).
 The `t.test(df$var)` function can be used to do a one-sample *t*-test and to find a 95% confidence interval for the mean number of years of education that US adults complete.
 Construct a 95% confidence interval for the mean number of years of education that US adults complete.
 
-**delete this line and add your code**
+```{r CI}
+  t.test(gss$educ)
+```
 
-**delete this line and add your comments**
+**According to this function, we are 95% confident that the population parameter for mean number of years of education that US complete is between 13.62852 and 13.84594.**
 
 
 ### Bootstrapping
@@ -119,21 +136,48 @@ Using `replicate()`, `sample()`, and the appropriate `map_*()` functions, perfor
 The last thing you want is those samples to change every time you knit your document because your interpretations might be slightly different.
 So, you will need to set a seed.
 
-**delete this line set your seed to your street number and add your code**
+```{r seed206}
+set.seed(206) 
+  boot_educ_means <- replicate(1000, sample(gss_educ, replace = TRUE)) %>%
+  map(rnorm, n = 1000) %>%  
+  map_dbl(mean) %>%
+  as_tibble()
+```
 
+**I set my seed to 206. I used sample() inside of replicate(). Then, I used map() to extract normal ditributions of n=1000. I used map_dbl() to extract the mean. Then, I used as_tibble to create a tidy tibble.** 
+
+### Mean Plot
+
+```{r mean_plot}
+boot_educ_means %>%
+  ggplot (mapping = aes(x = value)) +
+  geom_histogram(aes(y = stat(density)), color = "white") +
+  geom_density(fill = "red", alpha = 0.3) +
+  theme_light() +
+  labs(
+    title = "Density of Median Number of Years of Education",
+    subtitle = "Respondent has Completed",
+    x = "Mean Years",
+    y = "Density"
+  )
+```
+
+**I also decided to add in this mean plot in order to analyze the symmetry, normalization, and distribution. It appears that the data is bell-shaped, symmetrical, and thus, normal.**
 
 Now, use the `quantile()` function with appropriate `probs` to get construct a 95% bootstrap confidence interval for the mean number of years of education that US adults complete.
 Compare this interval to your t-interval above.
 
-**delete this line and add your code**
+```{r quantile}
+  quantile(boot_educ_means$value, probs = c(0, 0.95), na.rm = TRUE)
+```
 
-**delete this line and add your comments**
+
+**According to this function, we are 95% confident that the population parameter for mean number of years of education that US complete is between 13.92960 and 14.10032. The t-interval above had a width of 0.21742. This interval has a width of 0.17072. This interval is slightly slimmer than the previous t-interval.**
 
 
 ## Task 5: Other statistics
 
-Since the distribution of `educ` is so skewed, there may be other statistics that are better at describing the typical number of years of education completed by US adults.
-Write your own function for calculating the statistics below (you may have to Google what they mean!  Feel free to use relevant code from previous Activities).
+Since the distribution of educ is so skewed, there may be other statistics that are better at describing the typical number of years of education completed by US adults. If one of the below statistics functions does not exist in base R, write your own (you may have to Google what they mean! Feel free to use relevant code from previous Activities).
 
 Perform the bootstrap procedure and produce histogram and density graphs of the distributions of:
 
@@ -153,40 +197,210 @@ Think about what each statistic is measuring, and decide whether that makes sens
 
 ### Midhinge
 
-**delete this line and add your code**
+```{r midhinge_function}
+jessica_midhinge <- function(x) {
+  mean(quantile(x, probs = c(0.25, 0.75)))
+}
 
-**delete this line and add your comments**
+set.seed(206)
+boot_educ <- gss_educ %>%
+  rep_sample_n(
+    size = nrow(gss_educ), 
+    replace = TRUE, 
+    reps = 1000)
+
+boot_midhinge <- boot_educ %>%
+  group_by(replicate) %>%
+  summarise(midhinge_educ = jessica_midhinge(educ)) 
+```
+
+**A function was created called jessica_midhinge. Midhinge calculates the average of Q1 plus Q3. This function was written as the mean quantile probability of 0.25 to 0.75 of x. `rep_sample_n()` was used for the bootstrapping procedure with a seed of 206. This bootstrapped data was then grouped by the replicate column. Then, it was summarised to find midhinge_educ by using the `jessica_midhinge()` function that I created.**
+
+
+```{r midhinge_plot}
+boot_midhinge %>%
+  ggplot (mapping = aes(x = midhinge_educ)) +
+  geom_histogram(aes(y = stat(density)), color = "white") +
+  geom_density(fill = "red", alpha = 0.3) +
+  theme_light() +
+  labs(
+    title = "Density of Midhinge Number of Years of Education",
+    subtitle = "Respondent has Completed",
+    x = "Median Years",
+    y = "Density"
+  )
+```
+
+```{r midhinge_CI}
+quantile(boot_midhinge$midhinge_educ, probs = c(0, 0.95), na.rm = TRUE)
+```
+
+**The midhinge statistic is not a great value for describing the number of years of education. First, the 95% interval is 14 to 14. Based on this statistic, we are 95% confident that the population parameter for mean number of years of education that US complete is between 14 and 14.This is very different in comparison to the mean CI of 13.92960 and 14.10032. The midhinge statistic CI has a width of 0 and the mean statistics CI has a width of 0.17072. It is also shown in the histogram that there is no significant evidence of distribution and/or normality. The midhinge calculates the average of Q1 plus Q3. Before exploratory analyses, I had a feeling that this would not be a great statistic for this problem because it's possible that it is not the best way to calculate the average.**
 
 
 ### Trimmed Mean
 
 #### 5% Trimmed Mean
 
-**delete this line and add your code**
+```{r fivetrim_function}
+jessica_fivetrim <- function(x, trim = 0.05) {
+  mean(x, trim)
+}
 
-**delete this line and add your comments**
+set.seed(206)
+boot_educ <- gss_educ %>%
+  rep_sample_n(
+    size = nrow(gss_educ), 
+    replace = TRUE, 
+    reps = 1000)
+
+boot_fivetrim <- boot_educ %>%
+  group_by(replicate) %>%
+  summarise(fivetrim_educ = jessica_fivetrim(educ)) 
+```
+
+**A function was created called jessica_fivetrim. The 5% trimmed mean statistic calculates the mean of the data with the lowest 5% and highest 5% excluded. The mean is calculated from the remaining 90% of the data points. This function was written as the mean of x with a trim of 0.05 from each end. `rep_sample_n()` was used for the bootstrapping procedure with a seed of 206. This bootstrapped data was then grouped by the replicate column. Then, it was summarised to find fivetrim_educ by using the `jessica_fivetrim()` function that I created.**
+
+```{r fivetrim_plot}
+boot_fivetrim %>%
+  ggplot (mapping = aes(x = fivetrim_educ)) +
+  geom_histogram(aes(y = stat(density)), color = "white") +
+  geom_density(fill = "red", alpha = 0.3) +
+  theme_light() +
+  labs(
+    title = "Density of 5% Trimmed Mean Number of Years of Education",
+    subtitle = "Respondent has Completed",
+    x = "5% Trimmed Mean Years",
+    y = "Density"
+  )
+```
+
+```{r fivetrim_CI}
+quantile(boot_fivetrim$fivetrim_educ, probs = c(0, 0.95), na.rm = TRUE)
+```
+
+**The 5% trimmed mean statistic is a good value for describing the number of years of education. Based on this statistic, we are 95% confident that the population parameter for mean number of years of education that US complete is between 13.62005 and 13.86208. The mean CI is 13.92960 and 14.10032. The 5% trimmed mean statistic CI has a width of 0.24203 and the mean statistics CI has a width of 0.17072. The 5% trimmed mean statistic CI is wider. It is shown in the histogram that there is a bell-shape and symmetry -- indicating normality in the data. The 5% trimmed mean statistic calculates the mean of the data with the lowest 5% and highest 5% excluded. The mean is calculated from the remaining 90% of the data points. Before exploratory analyses, I had no prediction about the result because I was not completely familiar with the 5% trimmed mean prior to this problem.**
 
 
 #### 10% Trimmed Mean
 
-**delete this line and add your code**
+```{r tentrim_function}
+jessica_tentrim <- function(x, trim = 0.1) {
+  mean(x, trim)
+}
 
-**delete this line and add your comments**
+set.seed(206)
+boot_educ <- gss_educ %>%
+  rep_sample_n(
+    size = nrow(gss_educ), 
+    replace = TRUE, 
+    reps = 1000)
 
+boot_tentrim <- boot_educ %>%
+  group_by(replicate) %>%
+  summarise(tentrim_educ = jessica_tentrim(educ)) 
+```
+
+**A function was created called jessica_tentrim. The 10% trimmed mean statistic calculates the mean of the data with the lowest 10% and highest 10% excluded. The mean is calculated from the remaining 80% of the data points. This function was written as the mean of x with a trim of 0.1 from each end. `rep_sample_n()` was used for the bootstrapping procedure with a seed of 206. This bootstrapped data was then grouped by the replicate column. Then, it was summarised to find tentrim_educ by using the `jessica_tentrim()` function that I created.**
+
+```{r tentrim_plot}
+boot_tentrim %>%
+  ggplot (mapping = aes(x = tentrim_educ)) +
+  geom_histogram(aes(y = stat(density)), color = "white") +
+  geom_density(fill = "red", alpha = 0.3) +
+  theme_light() +
+  labs(
+    title = "Density of 10% Trimmed Mean Number of Years of Education",
+    subtitle = "Respondent has Completed",
+    x = "10% Trimmed Mean Years",
+    y = "Density"
+  )
+```
+
+```{r tentrim_CI}
+quantile(boot_tentrim$tentrim_educ, probs = c(0, 0.95), na.rm = TRUE)
+```
+**The 10% trimmed mean statistic is a good value for describing the number of years of education. Based on this statistic, we are 95% confident that the population parameter for mean number of years of education that US complete is between 13.58348 and 13.82174. The mean CI is 13.92960 and 14.10032. The 10% trimmed mean statistic CI has a width of 0.23826 and the mean statistics CI has a width of 0.17072. The 10% trimmed mean statistic CI is wider. It is shown in the histogram that there is a bell-shape and symmetry -- indicating normality in the data. The 10% trimmed mean statistic calculates the mean of the data with the lowest 10% and highest 10% excluded. The mean is calculated from the remaining 80% of the data points. Before exploratory analyses, I had no prediction about the result because I was not completely familiar with the 10% trimmed mean prior to this problem.**
 
 #### 25% Trimmed Mean
 
-**delete this line and add your code**
+```{r twofivetrim_function}
+jessica_twofivetrim <- function(x, trim = 0.25) {
+  mean(x, trim)
+}
 
-**delete this line and add your comments**
+set.seed(206)
+boot_educ <- gss_educ %>%
+  rep_sample_n(
+    size = nrow(gss_educ), 
+    replace = TRUE, 
+    reps = 1000)
 
+boot_twofivetrim <- boot_educ %>%
+  group_by(replicate) %>%
+  summarise(twofivetrim_educ = jessica_twofivetrim(educ)) 
+```
+
+**A function was created called jessica_twofivetrim. The 25% trimmed mean statistic calculates the mean of the data with the lowest 25% and highest 25% excluded. The mean is calculated from the remaining 50% of the data points. This function was written as the mean of x with a trim of 0.25 from each end. `rep_sample_n()` was used for the bootstrapping procedure with a seed of 206. This bootstrapped data was then grouped by the replicate column. Then, it was summarised to find twofivetrim_educ by using the `jessica_twofivetrim()` function that I created.**
+
+```{r twofivetrim_plot}
+boot_twofivetrim %>%
+  ggplot (mapping = aes(x = twofivetrim_educ)) +
+  geom_histogram(aes(y = stat(density)), color = "white") +
+  geom_density(fill = "red", alpha = 0.3) +
+  theme_light() +
+  labs(
+    title = "Density of 25% Trimmed Mean Number of Years of Education",
+    subtitle = "Respondent has Completed",
+    x = "25% Trimmed Mean Years",
+    y = "Density"
+  )
+```
+
+```{r twofivetrim_CI}
+quantile(boot_twofivetrim$twofivetrim_educ, probs = c(0, 0.95), na.rm = TRUE)
+```
+**The 25% trimmed mean statistic is a good value for describing the number of years of education. Based on this statistic, we are 95% confident that the population parameter for mean number of years of education that US complete is between 13.30070 and 13.61958. The mean CI is 13.92960 and 14.10032. The 25% trimmed mean statistic CI has a width of 0.31888 and the mean statistics CI has a width of 0.17072. The 25% trimmed mean statistic CI is fairly wider. It is shown in the histogram that there is a bell-shape and symmetry -- indicating normality in the data. The 25% trimmed mean statistic calculates the mean of the data with the lowest 25% and highest 25% excluded. The mean is calculated from the remaining 50% of the data points. Before exploratory analyses, I had no prediction about the result because I was not completely familiar with the 25% trimmed mean prior to this problem.**
 
 ### Median
 
-**delete this line and add your code**
+```{r median_function}
+set.seed(206)
+boot_educ <- gss_educ %>%
+  rep_sample_n(
+    size = nrow(gss_educ), 
+    replace = TRUE, 
+    reps = 1000)
 
-**delete this line and add your comments**
+boot_median <- boot_educ %>%
+  group_by(replicate) %>%
+  summarise(median_educ = median(educ))
+```
 
+**The median is calculated by arranging the numbers in order and finding the position of the "middle number". The median() function was used for this step. `rep_sample_n()` was used for the bootstrapping procedure with a seed of 206. This bootstrapped data was then grouped by the replicate column. Then, it was summarised to find median_educ by using the `median()` function.**
+
+```{r median_plot}
+boot_median %>%
+  ggplot (mapping = aes(x = median_educ)) +
+  geom_histogram(aes(y = stat(density)), color = "white") +
+  geom_density(fill = "red", alpha = 0.3) +
+  theme_light() +
+  labs(
+    title = "Density of Median Number of Years of Education",
+    subtitle = "Respondent has Completed",
+    x = "Median Years",
+    y = "Density"
+  )
+```
+
+```{r median_CI}
+quantile(boot_median$median_educ, probs = c(0, 0.95), na.rm = TRUE)
+```
+
+
+**The median statistic is not a great value for describing the number of years of education. First, the 95% interval is 13 to 14. Based on this statistic, we are 95% confident that the population parameter for mean number of years of education that US complete is between 13 and 14. This is different in comparison to the mean CI of 13.92960 and 14.10032. The median statistic CI has a width of 1 and the mean statistics CI has a width of 0.17072. The median statistic CI is very much wider, which is dangerous in terms of uncertainty of data. It is also shown in the histogram that there is no significant evidence of distribution and/or normality. The median is the middle number in a sorted, ascending or descending, list of numbers.**
+
+**Overall, I think that all 3 (5%, 10%, 25%) trimmed mean statistics above are great values for describing the number years of education, in addition to the mean statistic. I say this because it is shown in the histograms that the data is symmetrical and has a normal distribution. Specifically, I think that the 10% trimmed mean is the best statistic (out of the 3 trimmed means) for this problem because it has the smallest CI (0.23826). Out of all the statistics, I would choose the mean to describe the number of years of education since it has the smallest CI of 0.17072. The smaller the CI, the smaller the uncertainty of the data.**
 
 ## Attribution
 
